@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,22 +11,28 @@ public class MainManager : MonoBehaviour
     public int LineCount = 6;
     public Rigidbody Ball;
 
-    public Text ScoreText;
+    public string CurrentPlayerName;
+    public TextMeshProUGUI ScoreText;
+    public TextMeshProUGUI HighScoreText;
     public GameObject GameOverText;
-    
+
+    public int BestScore;
+    public string BestPlayerName;
+
     private bool m_Started = false;
     private int m_Points;
-    
-    private bool m_GameOver = false;
 
-    
+    private bool m_GameOver = false;
+    public bool HasGameOver => m_GameOver;
+
+
     // Start is called before the first frame update
     void Start()
     {
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
-        
-        int[] pointCountArray = new [] {1,1,2,2,5,5};
+
+        int[] pointCountArray = new[] { 1, 1, 2, 2, 5, 5 };
         for (int i = 0; i < LineCount; ++i)
         {
             for (int x = 0; x < perLine; ++x)
@@ -36,6 +43,11 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+
+        CurrentPlayerName = DataPersistanceManager.Instance != null ? DataPersistanceManager.Instance.CurrentPlayerName : "Player";
+
+        LoadAndSetHighScore(DataPersistanceManager.Instance.PlayerName, DataPersistanceManager.Instance.PlayerScore);
+
     }
 
     private void Update()
@@ -65,12 +77,37 @@ public class MainManager : MonoBehaviour
     void AddPoint(int point)
     {
         m_Points += point;
-        ScoreText.text = $"Score : {m_Points}";
+        ScoreText.text = $"Score: {m_Points}";
+    }
+
+    private void LoadAndSetHighScore(string playerName, int score)
+    {
+        if (DataPersistanceManager.Instance != null && DataPersistanceManager.Instance.HasFileExists())
+        {
+            BestPlayerName = playerName;
+            BestScore = score;
+            HighScoreText.text = $"Best Score: {BestScore} by {BestPlayerName}";
+        }
+        else
+        {
+            HighScoreText.text = "Best Score: 0";
+        }
     }
 
     public void GameOver()
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+
+        if (m_Points > BestScore)
+        {
+            LoadAndSetHighScore(CurrentPlayerName, m_Points);
+            DataPersistanceManager.Instance.SetHighScore(CurrentPlayerName, m_Points);
+        }
+    }
+
+    public void LeaveGame()
+    {
+        SceneManager.LoadScene(0);
     }
 }
